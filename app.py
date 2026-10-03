@@ -2,7 +2,8 @@ from flask import Flask, render_template
 from dotenv import load_dotenv
 import os
 
-# Load .env locally; on Vercel, env vars come from the dashboard
+# Locally: reads YOUTUBE_API_KEY from .env
+# On Vercel: reads from Environment Variables set in the dashboard
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,8 +15,6 @@ def index():
     return render_template("index.html", api_key=api_key)
 
 
-# Vercel needs the `app` object exposed at module level (no __main__ guard needed,
-# but keeping it lets you still run locally with `python app.py`)
 if __name__ == "__main__":
     app.run(debug=True)
 
