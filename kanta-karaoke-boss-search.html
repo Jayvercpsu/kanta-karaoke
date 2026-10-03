@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kanta Karaoke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+  --bg:#0b0720;--ink:#f5f0ff;--mute:#a79bd0;
+  --pink:#ff2e93;--pink-d:#b3105f;--cyan:#22d3ee;--cyan-d:#0e7490;
+  --yellow:#ffd23f;--red:#ff4d4d;--red-d:#a31d1d;--violet:#8b5cf6;--violet-d:#5b34b8;
+  --glass:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);
+  --tvw:min(100%,calc((100dvh - 330px)*1.7778 + 28px));
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Poppins","Segoe UI",system-ui,sans-serif}
+body{background:radial-gradient(900px 500px at 15% 0%,#3b1170 0%,transparent 60%),radial-gradient(800px 500px at 100% 100%,#0b4a6b 0%,transparent 55%),var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+[hidden]{display:none!important}
+
+.bgnotes{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.bgnotes img{position:absolute;width:38px;opacity:.12;animation:floaty 14s ease-in-out infinite}
+.bgnotes img:nth-child(1){left:6%;top:70%}
+.bgnotes img:nth-child(2){left:44%;top:12%;animation-delay:-4s;width:30px}
+.bgnotes img:nth-child(3){left:90%;top:60%;animation-delay:-8s}
+.bgnotes img:nth-child(4){left:25%;top:35%;animation-delay:-2s;width:26px}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-30px) rotate(10deg)}}
+
+.app{position:relative;z-index:1;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+.top{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px 6px}
+.top h1{margin:0;font-family:"Bungee","Impact",sans-serif;font-weight:400;font-size:clamp(1.5rem,4.2vw,2.5rem);letter-spacing:.04em;color:#fff;
+  text-shadow:0 0 8px var(--pink),0 0 22px var(--pink),0 0 40px var(--violet)}
+.top img{width:clamp(28px,4vw,44px);height:auto}
+footer{padding:6px 12px 8px;text-align:center;font-size:.8rem;color:var(--mute)}
+footer i{color:var(--pink)}
+
+.main{min-height:0;display:grid;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:0 12px}
+.left{display:flex;justify-content:center}
+.stack{width:var(--tvw);display:flex;flex-direction:column;align-items:stretch}
+.right{min-height:0}
+
+/* TV */
+.tv{background:linear-gradient(160deg,#34344a,#12121a 70%);border-radius:22px;padding:14px 14px 10px;
+  box-shadow:0 0 0 2px #444,0 0 30px rgba(255,46,147,.35),0 0 70px rgba(34,211,238,.18),0 18px 30px rgba(0,0,0,.5)}
+.screen{position:relative;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 25px rgba(0,0,0,.9)}
+.screen iframe,.screen #player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px;
+  background:radial-gradient(circle at 50% 40%,#4a1a8a 0%,#14082e 70%);z-index:2;transition:opacity .4s}
+.idle.hide{opacity:0;pointer-events:none}
+.idle img{width:clamp(40px,9vw,84px);animation:bob 2.4s ease-in-out infinite}
+.idle b{font-family:"Bungee",sans-serif;font-weight:400;font-size:clamp(1rem,2.6vw,1.8rem);text-shadow:0 0 14px var(--cyan)}
+.idle small{color:var(--mute);font-size:clamp(.7rem,1.4vw,.95rem)}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.06)}}
+.bezel{display:flex;justify-content:space-between;align-items:center;padding:8px 6px 0;font-family:"Bungee",sans-serif;font-size:.7rem;letter-spacing:.2em;color:#8a8aa6}
+.led{width:9px;height:9px;border-radius:50%;background:#4a4a5a}
+.led.on{background:#39ff88;box-shadow:0 0 10px #39ff88}
+.stand{align-self:center;width:30%;height:12px;background:linear-gradient(#3a3a4c,#15151d);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);margin-bottom:8px}
+
+/* now playing */
+.now{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:8px 12px;border-radius:16px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(8px)}
+.eq{display:flex;gap:3px;align-items:flex-end;height:22px;flex:none}
+.eq i{display:block;width:4px;height:100%;background:var(--cyan);border-radius:2px;transform-origin:bottom;animation:eq .9s ease-in-out infinite;animation-play-state:paused;transform:scaleY(.25)}
+.eq i:nth-child(2){animation-delay:-.3s;background:var(--pink)}
+.eq i:nth-child(3){animation-delay:-.6s;background:var(--yellow)}
+.eq i:nth-child(4){animation-delay:-.15s}
+.now.playing .eq i{animation-play-state:running}
+@keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+.now .txt{flex:1;min-width:0}
+.now small{display:block;color:var(--mute);font-size:.7rem}
+.now b{display:block;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* big videoke buttons */
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.vbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:84px;border-radius:18px;color:#fff;
+  font-family:"Bungee",sans-serif;font-size:.8rem;letter-spacing:.06em;text-shadow:0 2px 0 rgba(0,0,0,.35);
+  border-top:2px solid rgba(255,255,255,.35);transition:transform .08s,box-shadow .08s}
+.vbtn i{font-size:1.7rem}
+.vbtn:active{transform:translateY(5px)}
+.vbtn.pink{background:linear-gradient(#ff5cae,var(--pink));box-shadow:0 7px 0 var(--pink-d),0 12px 22px rgba(255,46,147,.4)}
+.vbtn.cyan{background:linear-gradient(#5ee6fb,#0fb5d3);box-shadow:0 7px 0 var(--cyan-d),0 12px 22px rgba(34,211,238,.35)}
+.vbtn.red{background:linear-gradient(#ff7b7b,var(--red));box-shadow:0 7px 0 var(--red-d),0 12px 22px rgba(255,77,77,.35)}
+.vbtn.violet{background:linear-gradient(#a98bff,var(--violet));box-shadow:0 7px 0 var(--violet-d),0 12px 22px rgba(139,92,246,.35)}
+.vbtn:active.pink{box-shadow:0 2px 0 var(--pink-d)}
+.vbtn:active.cyan{box-shadow:0 2px 0 var(--cyan-d)}
+.vbtn:active.red{box-shadow:0 2px 0 var(--red-d)}
+.vbtn:active.violet{box-shadow:0 2px 0 var(--violet-d)}
+
+/* panel */
+.panel{height:100%;display:flex;flex-direction:column;min-height:0;border-radius:22px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;background:rgba(0,0,0,.25)}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:12px;color:var(--mute);font-size:.72rem;font-weight:600}
+.tab i{font-size:1.05rem}
+.tab.on{background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff}
+.badge{position:absolute;top:2px;right:8px;min-width:18px;padding:0 5px;border-radius:9px;background:var(--yellow);color:#2a1a47;font-size:.65rem;font-weight:700;line-height:18px;text-align:center}
+.badge.bump{animation:bump .4s}
+@keyframes bump{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+.pane{flex:1;min-height:0;display:none;flex-direction:column;padding:10px}
+.pane.on{display:flex}
+.list{flex:1;min-height:0;overflow-y:auto;margin:0;padding:0 2px 0 0;list-style:none;overscroll-behavior:contain}
+.list::-webkit-scrollbar{width:6px}
+.list::-webkit-scrollbar-thumb{background:var(--violet);border-radius:3px}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:.85rem;color:var(--mute)}
+.link{color:var(--cyan);font-size:.8rem;font-weight:600}
+.empty{margin:20px 8px;text-align:center;color:var(--mute);font-size:.9rem}
+
+.sform{display:flex;gap:8px;margin-bottom:8px}
+.sform input{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:rgba(0,0,0,.35);color:var(--ink)}
+.sform button{padding:0 18px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),var(--violet));font-weight:700;color:#fff}
+.usage{margin-bottom:8px;font-size:.75rem;color:var(--mute)}
+.usage .bar{height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:3px}
+.usage .bar i{display:block;height:100%;background:var(--cyan);width:100%;transition:width .3s}
+.usage.low{color:#ff9bc4}
+.usage.low .bar i{background:var(--pink)}
+.smsg{margin:2px 0 8px;font-size:.85rem;color:var(--mute)}
+.smsg.err{color:#ff9bc4}
+
+.song{display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:8px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid transparent}
+.song.enter{animation:slidein .45s ease-out;border-color:var(--cyan)}
+@keyframes slidein{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.song img{width:88px;height:50px;object-fit:cover;border-radius:8px;flex:none;background:#000}
+.st{flex:1;min-width:0;font-size:.82rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.acts{display:flex;align-items:center;gap:6px;flex:none}
+.mini{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:.95rem;transition:background .15s}
+.mini:hover{background:rgba(255,255,255,.2)}
+.mini.danger:hover{background:var(--red)}
+.heart{color:#c7b8ee}
+.heart.on{color:var(--pink)}
+.heart.pop i{animation:pop .5s}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.7) rotate(-10deg)}60%{transform:scale(.85)}100%{transform:scale(1)}}
+.pill{height:40px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,var(--pink),var(--violet));font-weight:700;font-size:.82rem;color:#fff;transition:transform .15s}
+.pill:active{transform:scale(.92)}
+.pill.added{background:#18b565;animation:bump .4s}
+
+.toast{position:fixed;left:50%;bottom:calc(46px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;z-index:10;
+  padding:10px 18px;border-radius:24px;background:#fff;color:#2a1a47;font-weight:700;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* wide or landscape: two columns */
+@media (min-width:860px),(min-width:600px) and (orientation:landscape){
+  .main{grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);grid-template-rows:minmax(0,1fr);gap:18px;padding:0 18px}
+  .left{align-items:center}
+}
+/* narrow portrait: TV on top, list below */
+@media (max-width:859px) and (not (min-width:600px) and (orientation:landscape)){
+  :root{--tvw:min(100%,calc((40dvh - 56px)*1.7778 + 28px))}
+  .vbtn{min-height:62px;font-size:.62rem}
+  .vbtn i{font-size:1.25rem}
+  .tv{padding:8px 8px 6px;border-radius:16px}
+  .now{padding:6px 10px;margin-bottom:8px}
+  .controls{gap:8px;margin-bottom:6px}
+  .stand{display:none}
+}
+@media (max-height:560px){
+  .top{padding:4px 12px 2px}
+  .vbtn{min-height:54px}
+  .vbtn span{display:none}
+  .now{margin-bottom:6px;padding:4px 10px}
+  .stand{display:none}
+  :root{--tvw:min(100%,calc((100dvh - 190px)*1.7778 + 28px))}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bgnotes" aria-hidden="true">
+  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3b5.svg" alt="">
+  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3b6.svg" alt="">
+  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3b5.svg" alt="">
+  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2728.svg" alt="">
+</div>
+
+<div class="app">
+  <header class="top">
+    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3a4.svg" alt="">
+    <h1>Kanta Karaoke</h1>
+    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3b6.svg" alt="">
+  </header>
+
+  <div class="main">
+    <section class="left">
+      <div class="stack">
+        <div class="tv">
+          <div class="screen" id="screen">
+            <div id="player"></div>
+            <div class="idle" id="idle">
+              <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3a4.svg" alt="">
+              <b>Pick a song and sing!</b>
+              <small>Search a song, then press Add</small>
+            </div>
+          </div>
+          <div class="bezel"><span>KANTA TV</span><span class="led" id="led"></span></div>
+        </div>
+        <div class="stand"></div>
+
+        <div class="now" id="now">
+          <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="txt"><small>Now playing</small><b id="nowTitle">Nothing playing</b></div>
+          <button class="mini heart" id="nowHeart" aria-label="Favorite current song" hidden></button>
+        </div>
+
+        <div class="controls">
+          <button class="vbtn pink" id="btnPlay"><i class="fa-solid fa-play"></i><span>PLAY</span></button>
+          <button class="vbtn cyan" id="btnNext"><i class="fa-solid fa-forward-step"></i><span>NEXT</span></button>
+          <button class="vbtn red" id="btnStop"><i class="fa-solid fa-stop"></i><span>STOP</span></button>
+          <button class="vbtn violet" id="btnFull"><i class="fa-solid fa-expand"></i><span>FULL</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="right">
+      <div class="panel">
+        <nav class="tabs">
+          <button class="tab on" data-tab="search"><i class="fa-solid fa-magnifying-glass"></i>Search</button>
+          <button class="tab" data-tab="queue"><i class="fa-solid fa-list-ol"></i>Queue<span class="badge" id="bQueue">0</span></button>
+          <button class="tab" data-tab="favs"><i class="fa-solid fa-heart"></i>Favorites<span class="badge" id="bFavs">0</span></button>
+          <button class="tab" data-tab="history"><i class="fa-solid fa-clock-rotate-left"></i>History<span class="badge" id="bHistory">0</span></button>
+        </nav>
+
+        <div class="pane on" id="pane-search">
+          <form class="sform" id="searchForm">
+            <input type="search" id="q" placeholder="Search a song (karaoke is added for you)" required autocomplete="off">
+            <button type="submit" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+          </form>
+          <div class="usage" id="usage"><span id="usageText"></span><div class="bar"><i id="usageBar"></i></div></div>
+          <p class="smsg" id="searchMsg"></p>
+          <ul class="list" id="resultsList"></ul>
+        </div>
+
+        <div class="pane" id="pane-queue">
+          <div class="phead"><span>Up next</span><button class="link" id="clearQueue">Clear queue</button></div>
+          <ul class="list" id="queueList"></ul>
+          <p class="empty" id="queueEmpty">The queue is empty. Search a song and press Add.</p>
+        </div>
+
+        <div class="pane" id="pane-favs">
+          <div class="phead"><span>Your favorite songs</span></div>
+          <ul class="list" id="favsList"></ul>
+          <p class="empty" id="favsEmpty">No favorites yet. Tap the heart on any song.</p>
+        </div>
+
+        <div class="pane" id="pane-history">
+          <div class="phead"><span>Already played</span><button class="link" id="clearHistory">Clear history</button></div>
+          <ul class="list" id="historyList"></ul>
+          <p class="empty" id="historyEmpty">Songs you finish or skip will show up here.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>Made with <i class="fa-solid fa-heart"></i> by jay2x</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ====== PUT YOUR YOUTUBE DATA API KEY HERE ======
+const API_KEY = "AIzaSyBT3rmWq_VleLw_UJmTJUNAX7N3Wm6P0eE";
+// ================================================
+
+const LIMIT = 100, WARN = 10, STORE = 'kantaKaraokeV3', USAGE = 'kantaKaraokeUsage';
+
+let S = { current: null, queue: [], history: [], favs: [], results: [], pos: 0, playing: false, tab: 'search' };
+try { const d = JSON.parse(localStorage.getItem(STORE)); if (d) S = Object.assign(S, d); } catch (e) {}
+function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {} }
+
+const $ = id => document.getElementById(id);
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
+const decode = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
+const isFav = id => S.favs.some(f => f.id === id);
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------- search quota counter (estimate) ---------- */
+function pacificDay() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date()); }
+function getUsage() {
+  try { const u = JSON.parse(localStorage.getItem(USAGE)); if (u && u.day === pacificDay()) return u; } catch (e) {}
+  return { day: pacificDay(), count: 0 };
+}
+function setUsage(u) { try { localStorage.setItem(USAGE, JSON.stringify(u)); } catch (e) {} renderUsage(); }
+function renderUsage() {
+  const left = Math.max(0, LIMIT - getUsage().count);
+  $('usageText').textContent = 'Searches left today: ' + left + ' / ' + LIMIT + (left === 0 ? ' (resets ~3 PM PH)' : left <= WARN ? ' (almost used up!)' : '');
+  $('usageBar').style.width = (left / LIMIT * 100) + '%';
+  $('usage').classList.toggle('low', left <= WARN);
+}
+
+/* ---------- YouTube player ---------- */
+let player = null, ready = false, stopped = false;
+const tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+
+window.onYouTubeIframeAPIReady = function () {
+  player = new YT.Player('player', {
+    width: '100%', height: '100%',
+    playerVars: { rel: 0, playsinline: 1, modestbranding: 1 },
+    events: { onReady: onPlayerReady, onStateChange: onPlayerState }
+  });
+};
+
+function onPlayerReady() {
+  ready = true;
+  if (S.current) {
+    const o = { videoId: S.current.id, startSeconds: S.pos || 0 };
+    if (S.playing) {
+      player.loadVideoById(o);
+      setTimeout(() => { if (player.getPlayerState() !== 1) toast('Press PLAY to continue your song'); }, 2500);
+    } else player.cueVideoById(o);
+  }
+  updateUI();
+}
+
+function onPlayerState(e) {
+  if (e.data === YT.PlayerState.ENDED) { nextSong(); return; }
+  S.playing = (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
+  save(); updateUI();
+}
+
+setInterval(() => {
+  if (ready && S.current && player.getPlayerState && player.getPlayerState() === 1) { S.pos = player.getCurrentTime(); save(); }
+}, 2000);
+function savePos() { if (ready && S.current) { try { S.pos = player.getCurrentTime(); } catch (e) {} save(); } }
+window.addEventListener('pagehide', savePos);
+window.addEventListener('beforeunload', savePos);
+
+/* ---------- playback actions ---------- */
+function pushHistory(song) {
+  if (S.history[0] && S.history[0].id === song.id) return;
+  S.history.unshift(song);
+  S.history = S.history.slice(0, 50);
+}
+function playSong(song) {
+  if (S.current) pushHistory(S.current);
+  S.current = song; S.pos = 0; S.playing = true; stopped = false; save();
+  if (ready) player.loadVideoById(song.id);
+  renderAll();
+}
+function nextSong() {
+  if (S.current) pushHistory(S.current);
+  const n = S.queue.shift();
+  if (n) {
+    S.current = n; S.pos = 0; S.playing = true; stopped = false;
+    if (ready) player.loadVideoById(n.id);
+  } else {
+    if (!S.current) { toast('Nothing to play next'); return; }
+    S.current = null; S.pos = 0; S.playing = false;
+    if (ready) player.stopVideo();
+  }
+  save(); renderAll();
+}
+function togglePlay() {
+  if (!ready) return;
+  if (!S.current) { if (S.queue.length) nextSong(); else toast('Add a song first'); return; }
+  if (stopped) { stopped = false; S.pos = 0; player.loadVideoById(S.current.id); return; }
+  const st = player.getPlayerState();
+  if (st === 1 || st === 3) player.pauseVideo(); else player.playVideo();
+}
+function stopSong() {
+  if (!ready || !S.current) return;
+  player.stopVideo(); stopped = true; S.playing = false; S.pos = 0; save(); updateUI();
+}
+function fullscreen() {
+  const s = $('screen');
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (s.requestFullscreen) s.requestFullscreen();
+}
+$('btnPlay').onclick = togglePlay;
+$('btnNext').onclick = nextSong;
+$('btnStop').onclick = stopSong;
+$('btnFull').onclick = fullscreen;
+
+/* ---------- queue / favorites ---------- */
+function addToQueue(song) {
+  if (!S.current) { playSong(song); toast('Now playing'); return; }
+  S.queue.push(song); save();
+  renderQueue(S.queue.length - 1); renderBadges();
+  const b = $('bQueue'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+  toast('Added to queue');
+}
+function playFromQueue(i) { const s = S.queue.splice(i, 1)[0]; playSong(s); }
+function toggleFav(song) {
+  const i = S.favs.findIndex(f => f.id === song.id);
+  if (i >= 0) { S.favs.splice(i, 1); toast('Removed from favorites'); }
+  else { S.favs.unshift(song); toast('Added to favorites'); }
+  save(); refreshHearts(); renderFavs(); renderBadges();
+}
+function setHeart(b) {
+  const on = isFav(b.dataset.id);
+  b.classList.toggle('on', on);
+  b.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
+}
+function refreshHearts() { document.querySelectorAll('.heart').forEach(setHeart); }
+function popHeart(b) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+function heartBtn(song) {
+  const b = el('button', 'mini heart'); b.dataset.id = song.id; b.setAttribute('aria-label', 'Favorite');
+  setHeart(b);
+  b.onclick = () => { toggleFav(song); popHeart(b); };
+  return b;
+}
+$('nowHeart').onclick = () => { if (S.current) { toggleFav(S.current); popHeart($('nowHeart')); } };
+
+/* ---------- rendering ---------- */
+function miniBtn(icon, label, fn, cls) {
+  const b = el('button', 'mini ' + (cls || ''), '<i class="' + icon + '"></i>');
+  b.title = label; b.setAttribute('aria-label', label); b.onclick = fn; return b;
+}
+function addBtn(song) {
+  const html = '<i class="fa-solid fa-plus"></i> Add';
+  const b = el('button', 'pill', html);
+  b.onclick = () => {
+    addToQueue(song);
+    b.classList.add('added'); b.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+    setTimeout(() => { b.classList.remove('added'); b.innerHTML = html; }, 1200);
+  };
+  return b;
+}
+function songRow(song, actions, cls) {
+  const li = el('li', 'song' + (cls ? ' ' + cls : ''));
+  const img = el('img'); img.src = song.thumb; img.alt = ''; img.loading = 'lazy';
+  const t = el('div', 'st'); t.textContent = song.title;
+  const a = el('div', 'acts'); actions.forEach(x => a.appendChild(x));
+  li.append(img, t, a); return li;
+}
+function renderResults() {
+  const ul = $('resultsList'); ul.innerHTML = '';
+  S.results.forEach(s => ul.appendChild(songRow(s, [heartBtn(s), addBtn(s)])));
+}
+function renderQueue(flash) {
+  const ul = $('queueList'); ul.innerHTML = '';
+  $('queueEmpty').hidden = S.queue.length > 0;
+  $('clearQueue').hidden = !S.queue.length;
+  S.queue.forEach((s, i) => ul.appendChild(songRow(s, [
+    miniBtn('fa-solid fa-play', 'Play now', () => playFromQueue(i)),
+    heartBtn(s),
+    miniBtn('fa-solid fa-xmark', 'Remove', () => { S.queue.splice(i, 1); save(); renderQueue(); renderBadges(); }, 'danger')
+  ], flash === i ? 'enter' : '')));
+}
+function renderFavs() {
+  const ul = $('favsList'); ul.innerHTML = '';
+  $('favsEmpty').hidden = S.favs.length > 0;
+  S.favs.forEach(s => ul.appendChild(songRow(s, [heartBtn(s), addBtn(s)])));
+}
+function renderHistory() {
+  const ul = $('historyList'); ul.innerHTML = '';
+  $('historyEmpty').hidden = S.history.length > 0;
+  $('clearHistory').hidden = !S.history.length;
+  S.history.forEach(s => ul.appendChild(songRow(s, [
+    miniBtn('fa-solid fa-rotate-right', 'Play again', () => playSong(s)),
+    heartBtn(s),
+    addBtn(s)
+  ])));
+}
+function renderBadges() {
+  $('bQueue').textContent = S.queue.length;
+  $('bFavs').textContent = S.favs.length;
+  $('bHistory').textContent = S.history.length;
+}
+function updateUI() {
+  const c = S.current;
+  $('idle').classList.toggle('hide', !!c);
+  $('nowTitle').textContent = c ? c.title : 'Nothing playing';
+  $('now').classList.toggle('playing', !!c && S.playing);
+  $('led').classList.toggle('on', !!c);
+  const pb = $('btnPlay');
+  pb.querySelector('i').className = S.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+  pb.querySelector('span').textContent = S.playing ? 'PAUSE' : 'PLAY';
+  const h = $('nowHeart'); h.hidden = !c; h.dataset.id = c ? c.id : ''; setHeart(h);
+}
+function renderAll() { renderResults(); renderQueue(); renderFavs(); renderHistory(); renderBadges(); renderUsage(); updateUI(); }
+
+/* ---------- tabs ---------- */
+function setTab(name) {
+  S.tab = name; save();
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => setTab(t.dataset.tab));
+$('clearQueue').onclick = () => { S.queue = []; save(); renderQueue(); renderBadges(); };
+$('clearHistory').onclick = () => { S.history = []; save(); renderHistory(); renderBadges(); };
+
+/* ---------- search (karaoke is always added automatically) ---------- */
+$('searchForm').onsubmit = async e => {
+  e.preventDefault();
+  const msg = $('searchMsg');
+  let term = $('q').value.trim();
+  if (!term) return;
+  if (!/karaoke/i.test(term)) term += ' karaoke';
+  if (API_KEY.startsWith('PASTE')) { msg.className = 'smsg err'; msg.textContent = 'Put your API key in the code first.'; return; }
+  msg.className = 'smsg'; msg.textContent = 'Searching...';
+  const u = getUsage(); u.count++; setUsage(u);   // every request costs quota
+  try {
+    const url = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10'
+      + '&q=' + encodeURIComponent(term) + '&key=' + encodeURIComponent(API_KEY);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) {
+      const reason = data.error && data.error.errors && data.error.errors[0] && data.error.errors[0].reason;
+      if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+        const x = getUsage(); x.count = LIMIT; setUsage(x);
+        throw new Error('Daily search limit reached. It resets around 3 PM (PH). You can still play your queue and favorites.');
+      }
+      throw new Error((data.error && data.error.message) || 'Search failed');
+    }
+    S.results = data.items.map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), thumb: it.snippet.thumbnails.default.url }));
+    save(); renderResults();
+    msg.textContent = S.results.length ? '' : 'No results. Try other words.';
+    $('resultsList').scrollTop = 0;
+  } catch (err) {
+    msg.className = 'smsg err'; msg.textContent = 'Error: ' + err.message;
+  }
+};
+
+setTab(S.tab || 'search');
+renderAll();
+</script>
+</body>
+</html>
