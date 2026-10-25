@@ -126,11 +126,28 @@ footer i{color:var(--pink)}
 .smsg{margin:2px 0 8px;font-size:.85rem;color:var(--mute)}
 .smsg.err{color:#ff9bc4}
 
+/* smart suggestions */
+.suggest{display:flex;flex-direction:column;flex:1 1 0;min-height:0;min-width:0}
+.suggest-head{margin:2px 0 8px}
+.suggest-head h2{margin:0;display:flex;align-items:center;gap:6px;font-size:.9rem;font-weight:700;color:var(--ink)}
+.suggest-head h2 i{color:var(--pink);font-size:.82rem}
+.suggest-head p{margin:3px 0 0;font-size:.72rem;line-height:1.35;color:var(--mute)}
+.chips{display:flex;gap:6px;flex:none;overflow-x:auto;padding:1px 1px 8px;margin:0 -1px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:var(--mute);font-size:.72rem;font-weight:600;line-height:1.2;white-space:nowrap;transition:background .15s,color .15s,transform .1s;touch-action:manipulation}
+.chip:hover{background:rgba(255,255,255,.14);color:var(--ink)}
+.chip.on{background:linear-gradient(135deg,var(--violet),var(--pink));border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(255,46,147,.28)}
+.chip:active{transform:scale(.96)}
+.suggest .list{flex:1 1 0}
+.suggest-empty{margin:8px 6px}
+
 .song{display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:8px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid transparent}
 .song.enter{animation:slidein .45s ease-out;border-color:var(--cyan)}
 @keyframes slidein{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
 .song img{width:88px;height:50px;object-fit:cover;border-radius:8px;flex:none;background:#000}
-.st{flex:1;min-width:0;font-size:.82rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.st{flex:1;min-width:0;font-size:.82rem;line-height:1.25;overflow-wrap:anywhere}
+.st .ti{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st .by{display:block;margin-top:2px;font-size:.7rem;line-height:1.3;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acts{display:flex;align-items:center;gap:6px;flex:none}
 .mini{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:.95rem;transition:background .15s;touch-action:manipulation}
 .mini:hover{background:rgba(255,255,255,.2)}
@@ -141,6 +158,7 @@ footer i{color:var(--pink)}
 @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.7) rotate(-10deg)}60%{transform:scale(.85)}100%{transform:scale(1)}}
 .pill{height:40px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,var(--pink),var(--violet));font-weight:700;font-size:.82rem;color:#fff;transition:transform .15s;touch-action:manipulation;white-space:nowrap}
 .pill:active{transform:scale(.92)}
+.pill:disabled{cursor:default}
 .pill.added{background:#18b565;animation:bump .4s}
 
 .toast{position:fixed;left:50%;bottom:calc(58px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;z-index:10;
@@ -189,6 +207,7 @@ footer i{color:var(--pink)}
   .stand{display:none}
   .mini{width:44px;height:44px}
   .pill{height:44px}
+  .chip{min-height:40px;padding:0 10px}
   .link{min-height:44px;display:inline-flex;align-items:center}
 }
 
@@ -276,7 +295,7 @@ footer i{color:var(--pink)}
             <div class="idle" id="idle">
               <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3a4.svg" alt="">
               <b>Pick a song and sing!</b>
-              <small>Search a song, then press Add</small>
+              <small>Pick a suggestion or search, then press Add</small>
             </div>
           </div>
           <div class="bezel"><span>KANTA TV</span><span class="led" id="led"></span></div>
@@ -309,18 +328,35 @@ footer i{color:var(--pink)}
 
         <div class="pane on" id="pane-search">
           <form class="sform" id="searchForm">
-            <input type="search" id="q" placeholder="Search a song…" required autocomplete="off">
+            <input type="search" id="q" placeholder="Search a song…" required autocomplete="off" aria-label="Search karaoke songs">
             <button type="submit" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
           </form>
           <div class="usage" id="usage"><span id="usageText"></span><div class="bar"><i id="usageBar"></i></div></div>
-          <p class="smsg" id="searchMsg"></p>
-          <ul class="list" id="resultsList"></ul>
+          <p class="smsg" id="searchMsg" role="status"></p>
+
+          <section class="suggest" id="suggestions" aria-labelledby="suggestTitle">
+            <div class="suggest-head">
+              <h2 id="suggestTitle"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>Recommended for You</span></h2>
+              <p id="suggestNote">Popular and trending karaoke to get you started.</p>
+            </div>
+            <div class="chips" id="suggestChips" role="group" aria-label="Suggestion categories">
+              <button type="button" class="chip on" data-cat="forYou" aria-pressed="true">For You</button>
+              <button type="button" class="chip" data-cat="trending" aria-pressed="false">Trending</button>
+              <button type="button" class="chip" data-cat="opm" aria-pressed="false">OPM</button>
+              <button type="button" class="chip" data-cat="recent" aria-pressed="false">Recent</button>
+              <button type="button" class="chip" data-cat="similar" aria-pressed="false">Similar</button>
+            </div>
+            <p class="empty suggest-empty" id="suggestEmpty" hidden></p>
+            <ul class="list" id="suggestList" aria-label="Suggested karaoke songs"></ul>
+          </section>
+
+          <ul class="list" id="resultsList" aria-label="Search results"></ul>
         </div>
 
         <div class="pane" id="pane-queue">
           <div class="phead"><span>Up next</span><button class="link" id="clearQueue">Clear queue</button></div>
           <ul class="list" id="queueList"></ul>
-          <p class="empty" id="queueEmpty">The queue is empty. Search a song and press Add.</p>
+          <p class="empty" id="queueEmpty">The queue is empty. Pick a suggestion or search, then press Add.</p>
         </div>
 
         <div class="pane" id="pane-favs">
@@ -342,19 +378,23 @@ footer i{color:var(--pink)}
 </div>
 <div class="toast" id="toast" role="status"></div>
 
+<script src="{{ url_for('static', filename='js/recommendations.js') }}"></script>
 <script>
 const API_KEY = "{{ api_key }}";
 
+const K = window.KantaRecommendations;
 const LIMIT = 100, WARN = 10, STORE = 'kantaKaraokeV3', USAGE = 'kantaKaraokeUsage';
 
-let S = { current: null, queue: [], history: [], favs: [], results: [], pos: 0, playing: false, tab: 'search' };
+let S = { current: null, queue: [], history: [], favs: [], results: [], searches: [], pos: 0, playing: false, tab: 'search', suggestCat: 'forYou' };
 try { const d = JSON.parse(localStorage.getItem(STORE)); if (d) S = Object.assign(S, d); } catch (e) {}
+['queue', 'history', 'favs', 'results', 'searches'].forEach(key => { if (!Array.isArray(S[key])) S[key] = []; });
 function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {} }
 
 const $ = id => document.getElementById(id);
 const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
 const decode = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
 const isFav = id => S.favs.some(f => f.id === id);
+const songArtist = song => K ? K.artistOf(song) : (song.artist || '');
 
 /* ---------- toast ---------- */
 let toastTimer;
@@ -477,11 +517,13 @@ function toggleFav(song) {
   const i = S.favs.findIndex(f => f.id === song.id);
   if (i >= 0) { S.favs.splice(i, 1); toast('Removed from favorites'); }
   else { S.favs.unshift(song); toast('Added to favorites'); }
-  save(); refreshHearts(); renderFavs(); renderBadges();
+  save(); refreshHearts(); renderFavs(); renderBadges(); refreshSuggestionsSoon(320);
 }
 function setHeart(b) {
   const on = isFav(b.dataset.id);
   b.classList.toggle('on', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
   b.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
 }
 function refreshHearts() { document.querySelectorAll('.heart').forEach(setHeart); }
@@ -503,16 +545,22 @@ function addBtn(song) {
   const html = '<i class="fa-solid fa-plus"></i> Add';
   const b = el('button', 'pill', html);
   b.onclick = () => {
+    if (b.disabled) return;
+    b.disabled = true;
     addToQueue(song);
     b.classList.add('added'); b.innerHTML = '<i class="fa-solid fa-check"></i> Added';
-    setTimeout(() => { b.classList.remove('added'); b.innerHTML = html; }, 1200);
+    setTimeout(() => { b.disabled = false; b.classList.remove('added'); b.innerHTML = html; }, 1200);
   };
   return b;
 }
 function songRow(song, actions, cls) {
   const li = el('li', 'song' + (cls ? ' ' + cls : ''));
-  const img = el('img'); img.src = song.thumb; img.alt = ''; img.loading = 'lazy';
-  const t = el('div', 'st'); t.textContent = song.title;
+  const img = el('img'); const thumb = song.thumb || (K ? K.thumbFor(song.id) : ''); if (thumb) img.src = thumb;
+  img.alt = ''; img.loading = 'lazy';
+  const t = el('div', 'st');
+  const title = el('div', 'ti'); title.textContent = song.title;
+  const by = el('div', 'by'); by.textContent = songArtist(song);
+  t.append(title, by);
   const a = el('div', 'acts'); actions.forEach(x => a.appendChild(x));
   li.append(img, t, a); return li;
 }
@@ -545,6 +593,81 @@ function renderHistory() {
     addBtn(s)
   ])));
 }
+
+/* ---------- smart suggestions ---------- */
+let suggestCache = { key: '', data: null };
+let suggestTimer;
+function getSuggestionData() {
+  if (!K) return null;
+  const key = K.signature(S);
+  if (key !== suggestCache.key || !suggestCache.data) {
+    suggestCache = { key, data: K.buildSuggestions(S) };
+  }
+  return suggestCache.data;
+}
+function refreshSuggestionsSoon(delay) {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(renderSuggestions, delay == null ? 60 : delay);
+}
+function renderSuggestions() {
+  if (!K) { $('suggestions').hidden = true; return; }
+  let data;
+  try { data = getSuggestionData(); }
+  catch (err) {
+    console.error('Could not build suggestions', err);
+    $('suggestions').hidden = true;
+    $('resultsList').hidden = false;
+    return;
+  }
+  if (!data || !data.categories.length) return;
+
+  const active = data.categories.find(c => c.id === S.suggestCat) || data.categories[0];
+  if (S.suggestCat !== active.id) { S.suggestCat = active.id; save(); }
+
+  $('suggestTitle').querySelector('span').textContent = active.title;
+  $('suggestNote').textContent = active.description;
+  document.querySelectorAll('.chip').forEach(chip => {
+    const on = chip.dataset.cat === active.id;
+    chip.classList.toggle('on', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  const ul = $('suggestList'); ul.innerHTML = '';
+  active.songs.forEach(song => ul.appendChild(songRow(song, [heartBtn(song), addBtn(song)])));
+  const empty = $('suggestEmpty');
+  empty.hidden = active.songs.length > 0;
+  empty.textContent = active.emptyText;
+  ul.scrollTop = 0;
+}
+function setSearchView() {
+  const hasQuery = !!$('q').value.trim();
+  const showSuggestions = !hasQuery && !!K;
+  $('suggestions').hidden = !showSuggestions;
+  $('resultsList').hidden = showSuggestions;
+}
+function rememberSearch(term) {
+  const clean = String(term || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (!clean) return;
+  const key = K ? K.normalize(clean) : clean.toLowerCase();
+  S.searches = [clean].concat((S.searches || []).filter(q => {
+    const other = K ? K.normalize(q) : String(q).toLowerCase();
+    return other !== key;
+  })).slice(0, 12);
+}
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.onclick = () => {
+    S.suggestCat = chip.dataset.cat;
+    save();
+    renderSuggestions();
+  };
+});
+$('q').addEventListener('input', () => {
+  setSearchView();
+  const msg = $('searchMsg');
+  if (!$('q').value.trim()) { msg.className = 'smsg'; msg.textContent = ''; }
+  else if (!S.results.length) { msg.className = 'smsg'; msg.textContent = 'Press search to find karaoke tracks.'; }
+});
+
 function renderBadges() {
   $('bQueue').textContent = S.queue.length;
   $('bFavs').textContent = S.favs.length;
@@ -561,7 +684,7 @@ function updateUI() {
   pb.querySelector('span').textContent = S.playing ? 'PAUSE' : 'PLAY';
   const h = $('nowHeart'); h.hidden = !c; h.dataset.id = c ? c.id : ''; setHeart(h);
 }
-function renderAll() { renderResults(); renderQueue(); renderFavs(); renderHistory(); renderBadges(); renderUsage(); updateUI(); }
+function renderAll() { renderResults(); renderQueue(); renderFavs(); renderHistory(); renderSuggestions(); renderBadges(); renderUsage(); updateUI(); }
 
 /* ---------- tabs ---------- */
 function setTab(name) {
@@ -570,15 +693,17 @@ function setTab(name) {
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
 }
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => setTab(t.dataset.tab));
-$('clearQueue').onclick = () => { S.queue = []; save(); renderQueue(); renderBadges(); };
-$('clearHistory').onclick = () => { S.history = []; save(); renderHistory(); renderBadges(); };
+$('clearQueue').onclick = () => { S.queue = []; save(); renderQueue(); renderBadges(); renderSuggestions(); };
+$('clearHistory').onclick = () => { S.history = []; save(); renderHistory(); renderBadges(); renderSuggestions(); };
 
 /* ---------- search (karaoke is always added automatically) ---------- */
 $('searchForm').onsubmit = async e => {
   e.preventDefault();
   const msg = $('searchMsg');
-  let term = $('q').value.trim();
-  if (!term) return;
+  const originalTerm = $('q').value.trim();
+  let term = originalTerm;
+  if (!term) { setSearchView(); return; }
+  setSearchView();
   if (!/karaoke/i.test(term)) term += ' karaoke';
   if (!API_KEY) { msg.className = 'smsg err'; msg.textContent = 'API key not configured. Set YOUTUBE_API_KEY in your environment.'; return; }
   msg.className = 'smsg'; msg.textContent = 'Searching…';
@@ -596,8 +721,17 @@ $('searchForm').onsubmit = async e => {
       }
       throw new Error((data.error && data.error.message) || 'Search failed');
     }
-    S.results = data.items.map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), thumb: it.snippet.thumbnails.default.url }));
-    save(); renderResults();
+    S.results = data.items.map(it => {
+      const title = decode(it.snippet.title);
+      return {
+        id: it.id.videoId,
+        title,
+        artist: K ? K.extractArtist(title, it.snippet.channelTitle) : decode(it.snippet.channelTitle),
+        thumb: it.snippet.thumbnails.default.url
+      };
+    });
+    rememberSearch(originalTerm);
+    save(); renderResults(); renderSuggestions();
     msg.textContent = S.results.length ? '' : 'No results. Try other words.';
     $('resultsList').scrollTop = 0;
   } catch (err) {
@@ -607,6 +741,7 @@ $('searchForm').onsubmit = async e => {
 
 setTab(S.tab || 'search');
 renderAll();
+setSearchView();
 </script>
 </body>
 </html>
